@@ -237,3 +237,16 @@ void OLED_Print_Char(uint8_t xpos, uint8_t ypos, char DATA){
         Buffer[xpos++ + ((ypos>>3) << 7)] = OLED_FONT[(DATA-32)*6 + i];
     }
 }
+
+void OLED_Print_Sprite(uint8_t X_pos, uint8_t Y_pos, const uint16_t* Sprite){
+    uint16_t Iterador;
+    for (uint8_t X=2; X < Sprite[0]+2; X++) {
+        Iterador=1;
+        for (uint8_t Y=0; Y < Sprite[1]; Y++) {
+            if(Sprite[X] & Iterador){ 
+                OLED_Print_Pixel(X_pos+X-2, Y_pos+Y);
+            }
+            Iterador<<=1; 
+        }
+    }
+}

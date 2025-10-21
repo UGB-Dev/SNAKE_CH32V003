@@ -17,7 +17,6 @@
 
 extern const uint8_t Config_OLED[];
 extern const uint8_t OLED_FONT[];
-extern const int32_t Cos_Sin[][2];
 extern uint8_t Buffer[];
 
 void Dato_(void);
@@ -31,6 +30,7 @@ void OLED_Circulo(uint8_t Xc, uint8_t Yc, uint8_t r);
 void OLED_Cuadrado(uint8_t X0, uint8_t Y0, uint8_t LadoX, uint8_t LadoY);
 void OLED_Print_Str(uint8_t xpos, uint8_t ypos,const char* DATA);
 void OLED_Print_Char(uint8_t xpos, uint8_t ypos, char DATA);
+void OLED_Print_Sprite(uint8_t X_pos, uint8_t Y_pos, const uint16_t* Sprite);
 
 #ifdef __cplusplus
  }

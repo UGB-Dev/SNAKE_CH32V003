@@ -9,13 +9,13 @@
 #include "debug.h"
 #include "I2C_SOFTWARE.h"
 #include "OLED_SSD1306.h"
-#include "ADC.h"
+#include "ADC_MULTI_CHANNEL.h"
 #include "SNAKE.h"
 
 int main(void){
     Delay_Init();
-    I2C_SOFT_Init(1000000); // I2C a 100 Kb/s
-    ADC_Init_Simple();
+    I2C_SOFT_Init(100000); // I2C a 100 Kb/s
+    ADC_Multi_Channel_Init();
     OLED_Init();
     OLED_Clear();
     OLED_Print_Buffer();
@@ -25,6 +25,7 @@ int main(void){
     while(1){
         SNAKE_Actualizar_Var();
         SNAKE_Colision_Borde();
+        SNAKE_Colision_Comida();
         SNAKE_Dibujar();
     }
 }

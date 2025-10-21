@@ -7,89 +7,156 @@
 #include "SNAKE.h"
 
 Player Jugador;
+Snake_Body Food;
+Snake_Body *Body; // Debe ser del mismo tipo a la memoria dinamica
+uint8_t Frame_Vel=0, Flag_Game_Over = 0, Aleatorio=0;
+uint16_t Body_Pos=0;
 
-uint8_t Cuerpo_Snake[Width_Snake][3];
-uint8_t Frame_Vel=0, Flag_Game_Over = 0;
+const uint16_t Manzana[]={
+  5, 8, 0x78, 0xFC, 0x7E, 0xFD, 0x79
+};
 
 /***************************************************************
-*   @Fn Snake_Init
-*   Inicializa los valores del snake
+*   @fn SNAKE_Init
+*   Inicializa los valores de la serpiente
 ****************************************************************/
 void SNAKE_Init(void){
     /* INICIALIZACION DE JUGADOR */
-    Jugador = (Player){{120,31}, {-4,0}, 4}; 
-    for (uint8_t i = 0; i<Width_Snake; i++) {
-        Cuerpo_Snake[i][0] = Jugador.Posicion.X + Jugador.L + 2*(1+(i*2));
-        Cuerpo_Snake[i][1] = Jugador.Posicion.Y + 2;//*(1+i);
-        Cuerpo_Snake[i][2] = 1 ;
+    Jugador = (Player){{120, 31}, {-4, 0}, 4, 0};
+    Food =  (Snake_Body){{20, 10}, 1};
+    
+    Body = calloc(Width_Snake, sizeof(Snake_Body)); // Crea n datos en ram de tipo entero sin signo
+    for (uint16_t i = 0; i<Width_Snake; i++) {
+        Body[i].Posicion.X = Jugador.Posicion.X + Jugador.L + 2 * (1 + (i * 2));
+        Body[i].Posicion.Y = Jugador.Posicion.Y + 2;
+        Body[i].Activo = 0;
     }
 }
 
 /***************************************************************
-*   @Fn Snake_Dibujar
+*   @fn SNAKE_Dibujar
 *   Envia los datos al buffer para posteriormente enviarse al OLED
 ****************************************************************/
 void SNAKE_Dibujar(void){
-    /* DIBUJA CONTORNO */
-    OLED_Cuadrado(0, 0, Width-1, High-1 );
+    /* ASIGNA EN BUFFER EL CONTORNO */
+    OLED_Cuadrado(0, 0, Width-1, Height-1 );
 
+    /* REINICIO DE VARIABLES */
     if (Flag_Game_Over == 1) {
         Flag_Game_Over = 0;
         OLED_Clear();
-        OLED_Print_Str(20,31,"FIN DEL JUEGO :C");
+        OLED_Print_Str(20,24,"FIN DEL JUEGO :C");
+        OLED_Print_Str(20,40,"PUNTAJE: ");
+        OLED_Print_Char(74,40, '0'+ Jugador.Score / 100 );
+        OLED_Print_Char(81,40, '0'+ (Jugador.Score % 100) % 10 );
+        OLED_Print_Char(88,40, '0'+ (Jugador.Score % 100) / 10  );
         OLED_Print_Buffer();
-        //Delay_Ms(2000);
+        Delay_Ms(1000);
+
         Jugador.Posicion.Y = 32;
-        Jugador.Posicion.Y = 32;
-         //OLED_Cuadrado(Jugador.Posicion.X, Jugador.Posicion.Y, Jugador.L, Jugador.L);
+        for (uint16_t i = 0; i<Width_Snake; i++) {
+            Body[i].Activo = 0;
+        }
+        Body_Pos =0;
     }
     else {
-        /* DIBUJA CABEZA */
+        /* ASIGNA EN BUFFER LA CABEZA DE LA SERPIENTE */
         OLED_Cuadrado(Jugador.Posicion.X, Jugador.Posicion.Y, Jugador.L, Jugador.L);
-        OLED_Linea(Jugador.Posicion.X, Jugador.Posicion.Y+2, Jugador.Posicion.X-4, Jugador.Posicion.Y);
-        OLED_Linea(Jugador.Posicion.X, Jugador.Posicion.Y+2, Jugador.Posicion.X-4, Jugador.Posicion.Y+4);
-
-        for (uint8_t i = 0; i<Width_Snake; i++) {
-            if (Cuerpo_Snake[i][2] == 1){
-                OLED_Circulo(Cuerpo_Snake[i][0], Cuerpo_Snake[i][1], 2);
+        
+        /* ASIGNA EN BUFFER LA LENGUA DE LA SERPIENTE DE ACUERDO A LA DIRECCION */
+        if (Jugador.Velocidad.X < 0 && Jugador.Velocidad.Y == 0) { // Izquierda
+            OLED_Linea(Jugador.Posicion.X, Jugador.Posicion.Y+2, Jugador.Posicion.X-4, Jugador.Posicion.Y);
+            OLED_Linea(Jugador.Posicion.X, Jugador.Posicion.Y+2, Jugador.Posicion.X-4, Jugador.Posicion.Y+4);
+        }
+        else if (Jugador.Velocidad.X > 0 && Jugador.Velocidad.Y == 0) { // Derecha
+            OLED_Linea(Jugador.Posicion.X+4, Jugador.Posicion.Y+2, Jugador.Posicion.X+8, Jugador.Posicion.Y+2);
+            OLED_Linea(Jugador.Posicion.X+4, Jugador.Posicion.Y+2, Jugador.Posicion.X+8, Jugador.Posicion.Y+4);
+        }
+        else if (Jugador.Velocidad.Y < 0 && Jugador.Velocidad.X == 0) { // Arriba
+            OLED_Linea(Jugador.Posicion.X+2, Jugador.Posicion.Y, Jugador.Posicion.X, Jugador.Posicion.Y-4);
+            OLED_Linea(Jugador.Posicion.X+2, Jugador.Posicion.Y, Jugador.Posicion.X+4, Jugador.Posicion.Y-4);
+        
+        }
+        else if (Jugador.Velocidad.Y > 0 && Jugador.Velocidad.X == 0) { // Abajo
+            OLED_Linea(Jugador.Posicion.X+2, Jugador.Posicion.Y+4, Jugador.Posicion.X, Jugador.Posicion.Y+8);
+            OLED_Linea(Jugador.Posicion.X+2, Jugador.Posicion.Y+4, Jugador.Posicion.X+4, Jugador.Posicion.Y+8);
+        
+        }
+        
+        /* ASIGNA EN BUFFER EL SPRITE DE LA MANZANA */
+        OLED_Print_Sprite(Food.Posicion.X +2, Food.Posicion.Y + 4, Manzana);
+        
+        /* ASIGNA EN BUFFER EL CUERPO DE LA SERPIENTE */
+        for (uint16_t i = 0; i<Width_Snake; i++) {
+            if (Body[i].Activo == 1){
+                OLED_Circulo(Body[i].Posicion.X, Body[i].Posicion.Y, 2);
             }
         }           
     }
 
-    /* IMPRIME Y BORRA EL BUFFER */
-    OLED_Print_Buffer(); 
-    OLED_Clear(); 
+    OLED_Print_Buffer(); // Envia el contenido del buffer al OLED 
+    OLED_Clear(); // Borra el contenido del buffer
 }
 
-void SNAKE_Actualizar_Var(){
-    uint8_t X_anterior, Y_anterior;
-    Frame_Vel++;
+/***************************************************************
+*   @fn SNAKE_Actualizar_Var
+*   Actualiza las posiciones de la serpiente asi como su cuerpo
+****************************************************************/
+void SNAKE_Actualizar_Var(void){
+    srand(10+Aleatorio++);
 
-    /* CAPTURA EL ADC DE CANAL 4 */
-    Jugador.Posicion.Y = 1 + (ADC_Read_Simple()*58)/1024;
+    ADC_Multi_Channel_Read(); // Captura el adc del canal 4 y 6
+    uint8_t X_anterior, Y_anterior; // Variables auxiliares de la posicion actual
+    Frame_Vel++; // Variable para actualizar el movimiento (observe la captura1 de la carpeta Docs)
+
+    int16_t X_Reposo = 1024 - ADC_VALUE[0]; // Joystick para el eje X 
+    int16_t Y_Reposo = 1024 - ADC_VALUE[1]; // Joystick para el eje Y
+
+    /* INCREMENTA O DECREMENTA LA POSICION (X,Y) DE LA NAVE */
+    if (X_Reposo > 552){ RIGHT; }
+    else if(X_Reposo < 472) { LEFT; }
+
+    if (Y_Reposo > 552){ UP; }
+    else if(Y_Reposo < 472) { DOWN; }
+
+    /* CREA LA COMIDA EN LA POSICION ALEATORIA (X,Y) */
+    if (Food.Activo != 1){
+        Food.Posicion.X = 3 + rand()%121;
+        Food.Posicion.Y = 3 + rand()%57;
+        Food.Activo = 1;
+    }
  
-    /* ACTUALIZACION DE LA POSICION CADA 330 ms */ // ** Observe "captura1" en carpeta "Docs" ; 15 = 1 segundo  
-    if (Frame_Vel >= 2 ) { 
+    /* ACTUALIZACION DE LA POSICION CADA SEGUNDO (observe la captura1 de la carpeta Docs) */  
+    if (Frame_Vel >= 7 ) { 
         Frame_Vel = 0;
+
+        /* SE CAPTURA LA POSICION ACTUAL (X,Y) */
         X_anterior = Jugador.Posicion.X;
         Y_anterior = Jugador.Posicion.Y;
         
+        /* ACTUALIZA LA POSICION (X,Y) DEL JUGADOR DE ACUERDO AL VECTOR VELOCIDAD */
         Jugador.Posicion.X += Jugador.Velocidad.X;
         Jugador.Posicion.Y += Jugador.Velocidad.Y;
 
-        for (uint8_t i = 0; i<Width_Snake; i++) {
+        /* ACTUALIZA LA POSICION (X,Y) DEL CUERPO */
+        for (uint16_t i = 0; i<Width_Snake; i++) {
             if (i == Width_Snake-1) {
-                Cuerpo_Snake[Width_Snake-1-i][0] = X_anterior + 2;
-                Cuerpo_Snake[Width_Snake-1-i][1] = Y_anterior + 2;
+                Body[Width_Snake-1-i].Posicion.X = X_anterior + 2;
+                Body[Width_Snake-1-i].Posicion.Y = Y_anterior + 2;
             }
             else {
-                Cuerpo_Snake[Width_Snake-1-i][0] = Cuerpo_Snake[Width_Snake-2-i][0];
-                Cuerpo_Snake[Width_Snake-1-i][1] = Cuerpo_Snake[Width_Snake-2-i][1];
+                Body[Width_Snake-1-i].Posicion.X = Body[Width_Snake-2-i].Posicion.X;
+                Body[Width_Snake-1-i].Posicion.Y = Body[Width_Snake-2-i].Posicion.Y;
             }
         }
     } 
 }
 
+/***************************************************************
+*   @fn SNAKE_Colision_Borde
+*   Determina si la serpiente esta fuera de los limites del contorno
+*   para actualizar su proxima posicion
+****************************************************************/
 void SNAKE_Colision_Borde(void){
     /* COLISION EN BORDES DEL EJE Y */
     if((Jugador.Posicion.Y + Jugador.L) > 62 || Jugador.Posicion.Y < 2){
@@ -104,92 +171,18 @@ void SNAKE_Colision_Borde(void){
     }
 }
 
-
-/*void Imprimir_Marcador(uint8_t X, uint8_t Y, uint8_t Score){
-    OLED_Print_Char(X, Y, (Score/10)+'0'); // Decenas jugador 
-    OLED_Print_Char(X+7, Y, (Score%10)+'0'); // Unidades jugador 
-}
-
-void Imprimir_Barra(uint8_t X, uint8_t Y){
-    OLED_Linea(X, Y, X+20, Y);
-    OLED_Linea(X, Y-1, X+20, Y-1);
-}
-
-void SNAKE_Colision_Barra(void){
-    /* COLISION EN BARRA A
-    if ( (Jugador.Posicion.Y-Jugador.L) == 50  ) {
-        if ( (Jugador.Posicion.X >= (Jugador.Barra_A.X-2)) && (Jugador.Posicion.X <= (Jugador.Barra_A.X+22))) {
-            if (Jugador.Posicion.X  == (Jugador.Barra_A.X-2)){
-                Jugador.Velocidad.Y = Jugador.Velocidad.X = -5;
-            }
-            else if ( Jugador.Posicion.X  == (Jugador.Barra_A.X+22)) {
-                Jugador.Velocidad.Y = -5;
-                Jugador.Velocidad.X = 5;
-            }
-            else if(Jugador.Posicion.X < 2 || Jugador.Posicion.X > 125) {
-            Jugador.Velocidad.Y = -5;
-            }
-            else {
-                Jugador.Velocidad.Y = -5;
-            }
-        }
-    }
-    /* COLISION EN BARRA B
-    else if (Jugador.Posicion.X == 121) {
-        if ( (Y >= (Jugador.Barra_B.y-2)) && (Y <= (Jugador.Barra_B.y+14))) {
-            if (Y == (Jugador.Barra_B.y-2)){
-                Jugador.Velocidad.y = Jugador.Velocidad.x = -Jugador.Vel_Incr;
-            }
-            else if (Y == (Jugador.Barra_B.y+14)) {
-                Jugador.Velocidad.y = Jugador.Vel_Incr;
-                Jugador.Velocidad.x = -Jugador.Vel_Incr;
-            }
-            else {
-                Jugador.Velocidad.x = -Jugador.Vel_Incr;
-            }
-            Jugador.Cont++;
-        } 
-    }*/
-    /* INCREMENTA DIFICULTAD DESPUES DE 10 GOLPES EN 
-    if (Jugador.Cont == 10) {
-        Jugador.Vel_Incr++;
-        Jugador.Cont = 0;
-    }
-}
-
-void SNAKE_Colision_Jugador_Bloque(void){
-    uint8_t BloqX_Max, BloqX_Min, BloqY_Max, BloqY_Min;
-
-    for (uint8_t i=0; i<14; i++) {
-        if (ID_Block[i] == 1) {
-            BloqX_Max = Block_Position[i][0] + 10;
-            BloqX_Min = Block_Position[i][0];
-            BloqY_Max = Block_Position[i][1] + 5;
-            BloqY_Min = Block_Position[i][1];
-
-            if (( (Jugador.Posicion.Y-Jugador.L) == BloqY_Max) ) {
-                if ((Jugador.Posicion.X >= BloqX_Min) && (Jugador.Posicion.X <= BloqX_Max)) {
-                    Jugador.Velocidad.Y = 5;
-                    ID_Block[i] = 0;
-                    ID_Block[14]++;
-                }
-            }
-            else if (((Jugador.Posicion.Y-Jugador.L) == BloqY_Min)) {
-                if ((Jugador.Posicion.X >= BloqX_Min) && (Jugador.Posicion.X <= BloqX_Max)) {
-                    Jugador.Velocidad.Y = -5;
-                    ID_Block[i] = 0;
-                    ID_Block[14]++;
-                }
-            }
-        }
-    }
-
-    if (ID_Block[14] == 14) {
-        ID_Block[14] = 0;
-        for (uint8_t i=0; i<14; i++) {
-            ID_Block[i] = 1;
+/***************************************************************
+*   @fn SNAKE_Colision_Comida
+*   Determina si la serpiente se encuentra en la ubicacion de la comida
+*   para posteriormente "actualizar" la proxima posicion
+****************************************************************/
+void SNAKE_Colision_Comida(void){
+    if (Food.Posicion.X >= Jugador.Posicion.X && Food.Posicion.X <= (Jugador.Posicion.X+4)) {
+        if (Food.Posicion.Y >= Jugador.Posicion.Y && Food.Posicion.Y <= (Jugador.Posicion.Y + Jugador.L) ) {
+            Food.Activo = 0;
+            Body[Body_Pos].Activo = 1;
+            Body_Pos++;
+            Jugador.Score++;
         }
     }
 }
-
-*/

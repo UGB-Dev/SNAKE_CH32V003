@@ -13,22 +13,22 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "ADC.h"
+#include <stdlib.h>
+#include "ADC_MULTI_CHANNEL.h"
 #include "OLED_SSD1306.h"
 
 #define Width 128
-#define High 64
-#define Width_Snake 30
+#define Height 64
+#define Width_Snake 100
 
-#define UP Jugador.Velocidad.X = 0; \
-           Jugador.Velocidad.Y = -1;
-#define DOWN Jugador.Velocidad.X = 0; \
-             Jugador.Velocidad.Y = 1;
-#define LEFT Jugador.Velocidad.X = -1; \
-             Jugador.Velocidad.Y = 0;
-#define RIGHT Jugador.Velocidad.X = 1; \
+#define UP    Jugador.Velocidad.X = 0; \
+              Jugador.Velocidad.Y = -4;
+#define DOWN  Jugador.Velocidad.X = 0; \
+              Jugador.Velocidad.Y = 4;
+#define LEFT  Jugador.Velocidad.X = -4; \
               Jugador.Velocidad.Y = 0;
-           
+#define RIGHT Jugador.Velocidad.X = 4; \
+              Jugador.Velocidad.Y = 0;        
 
 typedef struct {
     int X;
@@ -39,19 +39,23 @@ typedef struct{
     Position Posicion;
     Position Velocidad;
     uint8_t L;
+    uint16_t Score;
 }Player;
 
-extern uint8_t ID_Block[];
-extern uint8_t Frame_Vel, Flag_Game_Over;
+typedef struct{
+    Position Posicion;
+    uint8_t Activo;
+}Snake_Body;
 
-void Imprimir_Marcador(uint8_t X, uint8_t Y, uint8_t Score);
-void Imprimir_Barra(uint8_t X, uint8_t Y);
+extern uint8_t Frame_Vel, Flag_Game_Over, Aleatorio;
+extern uint16_t Body_Pos;
+extern const uint16_t Manzana[];
+
 void SNAKE_Init(void);
-void SNAKE_Colision_Borde(void);
-void SNAKE_Colision_Barra(void);
 void SNAKE_Dibujar(void);
 void SNAKE_Actualizar_Var(void);
-void SNAKE_Colision_Pelota_Bloque(void);
+void SNAKE_Colision_Borde(void);
+void SNAKE_Colision_Comida(void);
 
 #ifdef __cplusplus
  }
